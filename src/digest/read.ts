@@ -78,6 +78,7 @@ export const readNight: ReadNight = (runsDir, night) => {
         owner: parsed.owner,
         runs: 1,
         retries: parsed.status === 'retry' ? 1 : 0,
+        fails: parsed.status === 'fail' ? 1 : 0,
         lastStatus: parsed.status,
         lastError: parsed.error,
         firstAt: parsed.at,
@@ -88,6 +89,7 @@ export const readNight: ReadNight = (runsDir, night) => {
 
     row.runs += 1;
     if (parsed.status === 'retry') row.retries += 1;
+    if (parsed.status === 'fail') row.fails += 1;
     row.lastStatus = parsed.status;
     row.lastAt = parsed.at;
     row.owner = parsed.owner ?? row.owner;

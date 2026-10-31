@@ -2,9 +2,13 @@ import type { DigestNight, DigestRow } from '../digest/types.js';
 
 const dash = '—';
 
-// retries >= 3 or a last status of fail: marked by class and by text, so it survives without colour.
-function isWarn(row: DigestRow): boolean {
-  return row.retries >= 3 || row.lastStatus === 'fail';
+// Retries of 3 or more and any fail, even one a later run recovered from. Marked by class and
+// by text, so the mark survives without colour.
+function marks(row: DigestRow): string[] {
+  return [
+    ...(row.fails > 0 ? [`${row.fails} failed`] : []),
+    ...(row.retries >= 3 ? [`${row.retries} retries`] : []),
+  ];
 }
 
 export function DigestPage({ digest }: { digest: DigestNight }) {
@@ -27,11 +31,12 @@ export function DigestPage({ digest }: { digest: DigestNight }) {
               <th>last error</th>
               <th>first</th>
               <th>last</th>
+              <th>marked</th>
             </tr>
           </thead>
           <tbody>
             {rows.map((r) => (
-              <tr class={isWarn(r) ? 'warn' : undefined}>
+              <tr class={marks(r).length > 0 ? 'warn' : undefined}>
                 <td>{r.job}</td>
                 <td>{r.owner ?? dash}</td>
                 <td>{r.runs}</td>
@@ -40,6 +45,7 @@ export function DigestPage({ digest }: { digest: DigestNight }) {
                 <td>{r.lastError ?? dash}</td>
                 <td>{r.firstAt}</td>
                 <td>{r.lastAt}</td>
+                <td>{marks(r).join(' · ') || dash}</td>
               </tr>
             ))}
           </tbody>

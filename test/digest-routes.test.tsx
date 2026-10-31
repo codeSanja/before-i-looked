@@ -102,7 +102,7 @@ describe('digest JSON: GET /api/digest/:night', () => {
     expect(body.rows.length).toBe(4);
     for (const row of body.rows) {
       expect(Object.keys(row).sort()).toEqual(
-        ['firstAt', 'job', 'lastAt', 'lastError', 'lastStatus', 'owner', 'retries', 'runs'].sort(),
+        ['fails', 'firstAt', 'job', 'lastAt', 'lastError', 'lastStatus', 'owner', 'retries', 'runs'].sort(),
       );
     }
     const backup = body.rows.find((r: { job: string }) => r.job === 'backup-db');
@@ -141,5 +141,22 @@ describe('page and JSON agree', () => {
     const html = await (await app.request(`/digest/${night}`)).text();
     expect(jobs.length).toBeGreaterThan(0);
     expect(jobsInHtml(html, jobs)).toEqual(jobs);
+  });
+});
+
+describe('digest page marks', () => {
+  it('marks a fail a later run recovered from, and retries of 3 or more', async () => {
+    const dir = mkdtempSync(join(tmpdir(), 'rig-marks-'));
+    const line = (job: string, status: string) =>
+      JSON.stringify({ at: '2026-01-01T01:00:00+01:00', job, status, owner: 'x' });
+    writeFileSync(
+      join(dir, '2026-01-01.jsonl'),
+      [line('recovered', 'fail'), line('recovered', 'ok'), line('flaky', 'retry'), line('flaky', 'retry'), line('flaky', 'retry'), line('calm', 'ok')].join('\n'),
+    );
+    const html = await (await appFor(dir).request('/digest/2026-01-01')).text();
+    rmSync(dir, { recursive: true, force: true });
+    expect(html).toContain('1 failed');
+    expect(html).toContain('3 retries');
+    expect(html.match(/<tr class="warn">/g)).toHaveLength(2);
   });
 });
